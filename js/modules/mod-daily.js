@@ -20,7 +20,7 @@ window.ModDaily=(function(){
    ${Object.keys(GROUPS).map(grp).join('')}
    <tr class=tot><td colspan=5>Tổng chi<td class=num>${vnd(r.nhap)}<td><td class=num>${vnd(r.chi)}<td><td></tr>
    <tr class=tot><td colspan=7>Tổng thu - chi = thừa / thiếu<td class=num>${vnd(r.balance)}<td colspan=2></tr></table>`}
- const save=async()=>{await MealAPI.saveDays();render()};
+ const save=async()=>{await persist(()=>MealAPI.saveDays());render()};
  function bind(){el.onchange=e=>{const t=e.target,v=t.value;
   if(t.id==='dt'){date=v;return render()}
   if(!guard('daily.edit')){return render()}const d=ensure();

@@ -32,3 +32,6 @@ function summarize(from,to){
   if(i===0)S.open=r.prevBal;S.close=r.balance;S.stock=r.stock});
  S.adjust=S.n?S.close-(S.open+S.thu-S.chi):0; // chênh do sửa tay "tồn ngày trước"
  S.chiPerKid=S.kidDays?S.chi/S.kidDays:0;S.avgKids=S.n?S.kidDays/S.n:0;return S}
+
+// Lưu có báo lỗi: nếu ghi server thất bại thì báo ngay, tránh màn hình hiện dữ liệu mới nhưng F5 lại mất.
+async function persist(fn){try{await fn();return true}catch(e){alert('Không lưu được dữ liệu: '+(e&&e.message||e)+'\nDữ liệu trên màn hình có thể chưa được lưu lên server.');return false}}

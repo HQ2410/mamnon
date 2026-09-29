@@ -1,7 +1,7 @@
 // Người dùng / vai trò / phiên đăng nhập. DB.users -> roleId -> DB.roles -> permissions.
 // Lưu ý: đây là kiểm soát phía trình duyệt; bảo mật thật cần kiểm tra thêm ở server/KIO.
 window.SystemAPI=(function(){
- const T=MN_CONFIG.tables,S=KioStore,SK=MN_CONFIG.sessionKey,TTL=8*3600*1000;
+ const T=MN_CONFIG.tables,S=DataStore,SK=MN_CONFIG.sessionKey,TTL=8*3600*1000;
  const PERMS={'daily.view':'Xem sổ ăn hàng ngày','daily.edit':'Nhập/sửa sổ ăn','master.view':'Xem danh mục','master.edit':'Sửa danh mục','report.view':'Xem báo cáo tuần/tháng','users.manage':'Quản lý người dùng'};
  const enc=s=>new TextEncoder().encode(s),hex=b=>[...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,'0')).join('');
  async function hash(pw,salt){
@@ -9,7 +9,7 @@ window.SystemAPI=(function(){
   const k=await crypto.subtle.importKey('raw',enc(pw),'PBKDF2',false,['deriveBits']);
   return hex(await crypto.subtle.deriveBits({name:'PBKDF2',hash:'SHA-256',salt:enc(salt),iterations:100000},k,256))}
  const newSalt=()=>hex(crypto.getRandomValues(new Uint8Array(16)));
- const pack=a=>a.map(r=>({id:r.id,payload:r})),saveUsers=()=>S.save(T.users,pack(DB.users)),saveRoles=()=>S.save(T.roles,pack(DB.roles));
+ const saveUsers=()=>S.save(T.users,DB.users),saveRoles=()=>S.save(T.roles,DB.roles);
  const fails={};
  function session(){try{const s=JSON.parse(localStorage.getItem(SK)||'null');return s&&s.exp>Date.now()?s:null}catch(e){return null}}
  function current(){const s=session();if(!s)return null;const u=DB.users.find(x=>x.id===s.uid);return u&&u.active?u:null}
@@ -23,13 +23,14 @@ window.SystemAPI=(function(){
   return{id:uid('u'),username:username.trim().toLowerCase(),name:name.trim(),roleId,salt:s,hash:await hash(pw,s),active:true,mustChange:!!mustChange}}
  const byId=id=>{const u=DB.users.find(x=>x.id===id);if(!u)throw new Error('Không tìm thấy người dùng.');return u};
  return{PERMS,current,can,role,
-  async boot(){DB.users=(await S.load(T.users)).map(r=>r.payload);DB.roles=(await S.load(T.roles)).map(r=>r.payload);
+  async boot(){DB.users=await S.load(T.users);DB.roles=await S.load(T.roles);
    let ch=false; // thêm vai trò/quyền mới của bản cập nhật, không gỡ quyền đã có
    for(const s of SEED_SYS.roles){const r=DB.roles.find(x=>x.id===s.id);
     if(!r){DB.roles.push(structuredClone(s));ch=true}
     else if((r.v||1)<s.v){s.permissions.forEach(p=>{if(!r.permissions.includes(p))r.permissions.push(p)});r.v=s.v;ch=true}}
    if(ch)await saveRoles();
-   if(!DB.users.length){DB.users=[await mk('admin','Quản trị viên','admin','admin123',true)];await saveUsers()}},
+   if(!DB.users.length){const a=await mk('admin','Quản trị viên','admin','admin123',true);a.id='u_admin';DB.users=[a]; // id cố định để 2 máy khởi tạo cùng lúc không sinh 2 admin
+   await saveUsers()}},
   async login(un,pw){un=(un||'').trim().toLowerCase();const f=fails[un]||{n:0,until:0};
    if(f.until>Date.now())throw new Error('Sai quá nhiều lần, thử lại sau '+Math.ceil((f.until-Date.now())/1000)+' giây.');
    const u=DB.users.find(x=>x.username===un),ok=u&&u.active&&await hash(pw||'',u.salt)===u.hash;
