@@ -1,0 +1,7 @@
+body{font:14px/1.4 system-ui,sans-serif;margin:0;background:#f5f6f8;color:#222}
+header{display:flex;gap:24px;align-items:center;padding:10px 16px;background:#1f6f5c;color:#fff}
+nav button{margin-right:6px}main{padding:16px;max-width:1100px;margin:auto;background:#fff}
+table{border-collapse:collapse;width:100%;margin:10px 0}td,th{border:1px solid #999;padding:3px 6px}
+th{background:#eef}input{width:90px}.bar{display:flex;gap:16px;flex-wrap:wrap;align-items:center}
+.grp td{color:#c00;font-weight:700}.num{text-align:right}.tot td{font-weight:700}
+@media print{header,.bar,button,select{display:none}main{max-width:none}}
