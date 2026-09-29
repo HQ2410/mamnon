@@ -5,3 +5,45 @@ table{border-collapse:collapse;width:100%;margin:10px 0}td,th{border:1px solid #
 th{background:#eef}input{width:90px}.bar{display:flex;gap:16px;flex-wrap:wrap;align-items:center}
 .grp td{color:#c00;font-weight:700}.num{text-align:right}.tot td{font-weight:700}
 @media print{header,.bar,button,select{display:none}main{max-width:none}}
+
+.nutrition-table {
+  width: 100%;
+  table-layout: fixed;
+}
+
+.nutrition-table th {
+  text-align: center;
+  vertical-align: middle;
+}
+
+.nutrition-table th:first-child,
+.nutrition-table td:first-child {
+  width: 24%;
+  text-align: left;
+}
+
+.nutrition-table th:not(:first-child) {
+  width: 15.2%;
+}
+
+.nutrition-table input {
+  width: 80px;
+  box-sizing: border-box;
+  text-align: right;
+}
+
+.daily-nutrition td:not(:first-child) {
+  text-align: right;
+}
+
+@media (max-width: 800px) {
+
+  .nutrition-table {
+    font-size: 12px;
+  }
+
+  .nutrition-table input {
+    width: 65px;
+  }
+
+}
