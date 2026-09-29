@@ -12,3 +12,10 @@ window.SEED={
   lines:[L('staple','gao',0,15500,15.95),L('main','ca',6.9,240000,6.9),L('main','rau',5,18000,5),L('main','lon',1,130000,1),
    L('main','lac',.5,70000,.5),L('main','vung',.3,80000,.3),L('snack','chao',5.5,25000,5.5),L('snack','bo',2,240000,2),
    L('snack','sua',0,5292,16),L('evening','chao',.5,25000,.5),L('evening','bo',.5,240000,.5)]}]};
+
+// Vai trò mặc định. '*' = toàn quyền. Quyền kiểm tra ở SystemAPI.can().
+window.SEED_SYS={roles:[
+ {id:'admin',v:2,name:'Quản trị',permissions:['*']},
+ {id:'principal',v:2,name:'Hiệu trưởng',permissions:['daily.view','master.view','report.view']},
+ {id:'accountant',v:2,name:'Người lập biểu / Kế toán',permissions:['daily.view','daily.edit','master.view','master.edit','report.view']},
+ {id:'teacher',v:2,name:'Giáo viên (chỉ xem)',permissions:['daily.view']}]};

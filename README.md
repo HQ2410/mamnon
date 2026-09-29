@@ -1,5 +1,5 @@
 # Quản lý suất ăn mầm non
-Sổ "Công khai xuất nhập chi ăn hàng ngày" cho trường mầm non, dựng theo cấu trúc ERP_LENAM.
+Sổ "Công khai xuất nhập chi ăn hàng ngày" cho trường mầm non.
 
 ## Chạy
 Chép vào `C:\xampp\htdocs\mamnon\`, bật Apache, mở `http://localhost/mamnon/` (Ctrl+F5 sau khi sửa source).
