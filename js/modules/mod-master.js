@@ -24,10 +24,13 @@ window.ModMaster=(function(){
         fiber:0
       };
 
-    const b=(a,id)=>
+    const b=(a,id, editKey)=>
       ro
         ?''
-        :`<button data-${a}="${esc(id)}">Xóa</button>`;
+        :`
+          <button data-edit-${editKey}="${esc(id)}">Sửa</button>
+          <button data-${a}="${esc(id)}">Xóa</button>
+        `;
 
     el.innerHTML=`
 
@@ -46,7 +49,7 @@ window.ModMaster=(function(){
             <td>${esc(c.name)}</td>
             <td>${esc(c.teachers)}</td>
             <td>${c.nursery?'x':''}</td>
-            <td>${b('dc',c.id)}</td>
+            <td>${b('dc',c.id, 'class')}</td>
           </tr>
         `).join('')}
 
@@ -74,7 +77,7 @@ window.ModMaster=(function(){
             <td>${esc(i.unit)}</td>
             <td class=num>${vnd(i.price)}</td>
             <td>${i.stock?'x':''}</td>
-            <td>${b('di',i.id)}</td>
+            <td>${b('di',i.id, 'item')}</td>
           </tr>
 
         `).join('')}
@@ -358,10 +361,16 @@ window.ModMaster=(function(){
 
         const b=e.target;
 
+        // Chỉ xử lý khi click đúng nút hành động. Không dùng `b.id` chung chung:
+        // bôi đen văn bản làm click bắn vào phần tử cha chung (vd. <main id="view">)
+        // và sẽ bị nhận nhầm là thao tác sửa.
         if(
-          !(b.id||
+          !(b.id==='ac'||
+            b.id==='ai'||
             b.dataset.dc||
-            b.dataset.di)
+            b.dataset.di||
+            b.dataset.editClass||
+            b.dataset.editItem)
         ){
           return;
         }
@@ -457,6 +466,41 @@ window.ModMaster=(function(){
 
         }
 
+        // Sửa lớp
+        else if(b.dataset.editClass){
+
+          const c=
+            DB.classes.find(
+              c=>c.id===b.dataset.editClass
+            );
+
+          if(!c){
+            return;
+          }
+
+          const name=
+            prompt('Tên lớp',c.name);
+
+          if(name===null){
+            return;
+          }
+
+          const teachers=
+            prompt('Cô chủ nhiệm',c.teachers||'');
+
+          if(teachers===null){
+            return;
+          }
+
+          const nursery=
+            confirm('Là nhà trẻ?');
+
+          c.name=name.trim();
+          c.teachers=teachers.trim();
+          c.nursery=nursery;
+
+          save();
+        }
 
         // Xóa lớp
         else if(b.dataset.dc){
@@ -469,6 +513,78 @@ window.ModMaster=(function(){
           save();
         }
 
+        // Sửa thực phẩm
+        else if(b.dataset.editItem){
+
+          const item=
+            DB.items.find(
+              i=>i.id===b.dataset.editItem
+            );
+
+          if(!item){
+            return;
+          }
+
+          const name=
+            prompt('Tên thực phẩm',item.name);
+
+          if(name===null){
+            return;
+          }
+
+          const unit=
+            prompt('ĐVT',item.unit||'Kg');
+
+          if(unit===null){
+            return;
+          }
+
+          const priceInput=
+            prompt('Đơn giá',item.price);
+
+          if(priceInput===null){
+            return;
+          }
+
+          const price=
+            +priceInput||0;
+
+          const stock=
+            confirm('Theo dõi tồn kho?');
+
+          let nutritionWeight=
+            item.nutritionWeight||0;
+
+          if(
+            unit.toLowerCase()==='hộp'||
+            unit.toLowerCase()==='chai'
+          ){
+
+            const weightInput=
+              prompt(
+                'Khối lượng dinh dưỡng của 1 '+unit+
+                ' (gram).\nNhập 0 nếu chưa xác định.',
+                nutritionWeight
+              );
+
+            if(weightInput===null){
+              return;
+            }
+
+            nutritionWeight=
+              +weightInput||0;
+          }else{
+            nutritionWeight=0;
+          }
+
+          item.name=name.trim();
+          item.unit=unit.trim();
+          item.price=price;
+          item.stock=stock;
+          item.nutritionWeight=nutritionWeight;
+
+          save();
+        }
 
         // Xóa thực phẩm
         else if(b.dataset.di){

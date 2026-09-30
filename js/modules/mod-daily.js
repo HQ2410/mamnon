@@ -760,6 +760,16 @@ window.ModDaily=(function(){
       }
 
 
+      // Bỏ qua các control không phải dữ liệu phiếu (tránh báo thiếu quyền oan)
+      if(
+        t.dataset.f===undefined&&
+        t.dataset.a===undefined&&
+        t.dataset.l===undefined
+      ){
+        return;
+      }
+
+
       if(!guard('daily.edit')){
 
         return render();

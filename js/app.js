@@ -4,7 +4,7 @@ function logout(){SystemAPI.logout();location.reload()}
 function changePwd(){ModAuth.showChangePassword(false,start)}
 function buildNav(){const u=SystemAPI.current();
  document.getElementById('nav').innerHTML=Object.entries(TABS).filter(([k,v])=>SystemAPI.can(v[2])).map(([k,v])=>`<button onclick="go('${k}')">${v[0]}</button>`).join('')+
-  ` <span>${esc(u.name)} · ${esc((SystemAPI.role(u)||{}).name||'')}</span> <button onclick="changePwd()">Đổi mật khẩu</button> <button onclick="logout()">Đăng xuất</button>`}
+  ` <span>${esc(u.name)} · ${esc((SystemAPI.role(u)||{}).name||'')}</span> <button onclick="changePwd()">Cài đặt mật khẩu</button> <button onclick="logout()">Đăng xuất</button>`}
 async function start(){try{await MealAPI.boot()}catch(e){document.getElementById('view').innerHTML='<p style="color:#c00">Không tải được dữ liệu: '+esc(e.message)+'</p><button onclick="start()">Thử lại</button>';return}
  buildNav();
  const first=Object.keys(TABS).find(k=>SystemAPI.can(TABS[k][2]));

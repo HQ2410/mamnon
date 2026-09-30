@@ -29,7 +29,7 @@ window.ModReports=(function(){
   Object.values(S.items).sort((a,b)=>b.money-a.money).forEach(o=>L.push([q(o.it.name),q(o.it.unit),o.qtyIn,o.qtyOut,Math.round(o.money)]));
   const a=document.createElement('a');a.href=URL.createObjectURL(new Blob(['\ufeff'+L.map(r=>r.join(';')).join('\r\n')],{type:'text/csv'}));a.download=`bao-cao-${mode}-${f}.csv`;a.click()}
  return{mount(root){el=root;ref=today();render();
-  el.onchange=e=>{if(!guard('report.view'))return;if(e.target.id==='mode')mode=e.target.value;else if(e.target.id==='ref'&&e.target.value)ref=e.target.value;else return;render()};
+  el.onchange=e=>{if(!['mode','ref'].includes(e.target.id))return;if(!guard('report.view'))return;if(e.target.id==='mode')mode=e.target.value;else if(e.target.id==='ref'&&e.target.value)ref=e.target.value;else return;render()};
   el.onclick=e=>{const id=e.target.id;if(!['pv','nx','csv'].includes(id))return;if(!guard('report.view'))return;
    if(id==='csv')csv();else{shift(id==='nx'?1:-1);render()}}}};
 })();
