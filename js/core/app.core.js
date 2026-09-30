@@ -1,7 +1,21 @@
 window.DB={
   classes:[],
   items:[],
-  days:[]
+  days:[],
+  nutritionRecommendation:{
+    energy:0,
+    protein:0,
+    lipid:0,
+    glucid:0,
+    fiber:0
+  },
+  minNutritionRecommendation:{
+    energy:0,
+    protein:0,
+    lipid:0,
+    glucid:0,
+    fiber:0
+  }
 };
 
 const vnd=n=>Math.round(n||0).toLocaleString('vi-VN');

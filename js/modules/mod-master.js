@@ -15,6 +15,15 @@ window.ModMaster=(function(){
 
     const ro=!SystemAPI.can('master.edit');
 
+    const minNutritionRecommendation =
+      DB.minNutritionRecommendation || {
+        energy:0,
+        protein:0,
+        lipid:0,
+        glucid:0,
+        fiber:0
+      };
+
     const b=(a,id)=>
       ro
         ?''
@@ -174,6 +183,152 @@ window.ModMaster=(function(){
         `).join('')}
 
       </table>
+
+      <h3>Hàm lượng dinh dưỡng khuyến cáo cho một ngày</h3>
+
+      <table class="nutrition-table nutrition-recommendation">
+
+        <tr>
+          <th>Chỉ tiêu</th>
+          <th>Năng lượng<br>(kcal/ngày)</th>
+          <th>Protein<br>(g/ngày)</th>
+          <th>Lipid<br>(g/ngày)</th>
+          <th>Glucid<br>(g/ngày)</th>
+          <th>Chất xơ<br>(g/ngày)</th>
+        </tr>
+
+        <tr>
+
+          <td>
+            Mức khuyến cáo
+          </td>
+
+          <td>
+            <input
+              data-recommendation-key="energy"
+              type="number"
+              min="0"
+              step="any"
+              value="${DB.nutritionRecommendation.energy}"
+              ${ro?'disabled':''}
+            >
+          </td>
+
+          <td>
+            <input
+              data-recommendation-key="protein"
+              type="number"
+              min="0"
+              step="any"
+              value="${DB.nutritionRecommendation.protein}"
+              ${ro?'disabled':''}
+            >
+          </td>
+
+          <td>
+            <input
+              data-recommendation-key="lipid"
+              type="number"
+              min="0"
+              step="any"
+              value="${DB.nutritionRecommendation.lipid}"
+              ${ro?'disabled':''}
+            >
+          </td>
+
+          <td>
+            <input
+              data-recommendation-key="glucid"
+              type="number"
+              min="0"
+              step="any"
+              value="${DB.nutritionRecommendation.glucid}"
+              ${ro?'disabled':''}
+            >
+          </td>
+
+          <td>
+            <input
+              data-recommendation-key="fiber"
+              type="number"
+              min="0"
+              step="any"
+              value="${DB.nutritionRecommendation.fiber}"
+              ${ro?'disabled':''}
+            >
+          </td>
+
+        </tr>
+
+        <tr>
+
+          <td>
+            Mức tối thiểu
+          </td>
+
+          <td>
+            <input
+              data-min-recommendation-key="energy"
+              type="number"
+              min="0"
+              step="any"
+              value="${minNutritionRecommendation.energy}"
+              ${ro?'disabled':''}
+            >
+          </td>
+
+          <td>
+            <input
+              data-min-recommendation-key="protein"
+              type="number"
+              min="0"
+              step="any"
+              value="${minNutritionRecommendation.protein}"
+              ${ro?'disabled':''}
+            >
+          </td>
+
+          <td>
+            <input
+              data-min-recommendation-key="lipid"
+              type="number"
+              min="0"
+              step="any"
+              value="${minNutritionRecommendation.lipid}"
+              ${ro?'disabled':''}
+            >
+          </td>
+
+          <td>
+            <input
+              data-min-recommendation-key="glucid"
+              type="number"
+              min="0"
+              step="any"
+              value="${minNutritionRecommendation.glucid}"
+              ${ro?'disabled':''}
+            >
+          </td>
+
+          <td>
+            <input
+              data-min-recommendation-key="fiber"
+              type="number"
+              min="0"
+              step="any"
+              value="${minNutritionRecommendation.fiber}"
+              ${ro?'disabled':''}
+            >
+          </td>
+
+        </tr>
+
+      </table>
+
+      ${ro
+        ?'<p><i>(chỉ xem)</i></p>'
+        :'<p><i>Nhập 0 nếu không muốn kiểm tra chỉ tiêu đó.</i></p>'
+      }
 
       ${ro
         ?'<p><i>(chỉ xem)</i></p>'
@@ -349,6 +504,44 @@ window.ModMaster=(function(){
       el.onchange=e=>{
 
         const input=e.target;
+
+        if(input.dataset.recommendationKey){
+
+          if(!guard('master.edit')){
+            render();
+            return;
+          }
+
+          const key=input.dataset.recommendationKey;
+
+          DB.nutritionRecommendation[key]=Math.max(
+            0,
+            +input.value||0
+          );
+
+          MealAPI.saveNutritionRecommendation();
+
+          return;
+        }
+
+        if(input.dataset.minRecommendationKey){
+
+          if(!guard('master.edit')){
+            render();
+            return;
+          }
+
+          const key=input.dataset.minRecommendationKey;
+
+          DB.minNutritionRecommendation[key]=Math.max(
+            0,
+            +input.value||0
+          );
+
+          MealAPI.saveNutritionRecommendation();
+
+          return;
+        }
 
         if(
           !input.dataset.nutritionId

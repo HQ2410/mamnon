@@ -47,3 +47,30 @@ th{background:#eef}input{width:90px}.bar{display:flex;gap:16px;flex-wrap:wrap;al
   }
 
 }
+
+.daily-budget-warning {
+  background: #f8d7da;
+  color: #842029;
+  border: 1px solid #f1aeb5;
+  padding: 8px 12px;
+  border-radius: 5px;
+  font-weight: 600;
+}
+
+.nutrition-heading {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.daily-nutrition-warning {
+  display: inline-block;
+  background: #f8d7da;
+  color: #842029;
+  border: 1px solid #f1aeb5;
+  padding: 6px 10px;
+  border-radius: 5px;
+  font-size: 13px;
+  font-weight: 600;
+}

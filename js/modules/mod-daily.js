@@ -106,6 +106,142 @@ window.ModDaily=(function(){
               )
               .join('');
 
+    const nutritionRecommendation =
+      DB.nutritionRecommendation || {
+        energy:0,
+        protein:0,
+        lipid:0,
+        glucid:0,
+        fiber:0
+      };
+
+    const minNutritionRecommendation =
+      DB.minNutritionRecommendation || {
+        energy:0,
+        protein:0,
+        lipid:0,
+        glucid:0,
+        fiber:0
+      };
+
+    const nutritionExceeded =
+      (
+        nutritionRecommendation.energy > 0 &&
+        r.mealNutrition.total.energy > nutritionRecommendation.energy
+      ) ||
+      (
+        nutritionRecommendation.protein > 0 &&
+        r.mealNutrition.total.protein > nutritionRecommendation.protein
+      ) ||
+      (
+        nutritionRecommendation.lipid > 0 &&
+        r.mealNutrition.total.lipid > nutritionRecommendation.lipid
+      ) ||
+      (
+        nutritionRecommendation.glucid > 0 &&
+        r.mealNutrition.total.glucid > nutritionRecommendation.glucid
+      ) ||
+      (
+        nutritionRecommendation.fiber > 0 &&
+        r.mealNutrition.total.fiber > nutritionRecommendation.fiber
+      );
+
+    const nutritionBelowMinimum =
+      (
+        minNutritionRecommendation.energy > 0 &&
+        r.mealNutrition.total.energy < minNutritionRecommendation.energy
+      ) ||
+      (
+        minNutritionRecommendation.protein > 0 &&
+        r.mealNutrition.total.protein < minNutritionRecommendation.protein
+      ) ||
+      (
+        minNutritionRecommendation.lipid > 0 &&
+        r.mealNutrition.total.lipid < minNutritionRecommendation.lipid
+      ) ||
+      (
+        minNutritionRecommendation.glucid > 0 &&
+        r.mealNutrition.total.glucid < minNutritionRecommendation.glucid
+      ) ||
+      (
+        minNutritionRecommendation.fiber > 0 &&
+        r.mealNutrition.total.fiber < minNutritionRecommendation.fiber
+      );
+
+    const nutritionBelowWarnings = [];
+    const nutritionExceededWarnings = [];
+
+    if (
+      minNutritionRecommendation.energy > 0 &&
+      r.mealNutrition.total.energy < minNutritionRecommendation.energy
+    ) {
+      nutritionBelowWarnings.push('calorie');
+    }
+
+    if (
+      minNutritionRecommendation.protein > 0 &&
+      r.mealNutrition.total.protein < minNutritionRecommendation.protein
+    ) {
+      nutritionBelowWarnings.push('protein');
+    }
+
+    if (
+      minNutritionRecommendation.lipid > 0 &&
+      r.mealNutrition.total.lipid < minNutritionRecommendation.lipid
+    ) {
+      nutritionBelowWarnings.push('lipid');
+    }
+
+    if (
+      minNutritionRecommendation.glucid > 0 &&
+      r.mealNutrition.total.glucid < minNutritionRecommendation.glucid
+    ) {
+      nutritionBelowWarnings.push('glucid');
+    }
+
+    if (
+      minNutritionRecommendation.fiber > 0 &&
+      r.mealNutrition.total.fiber < minNutritionRecommendation.fiber
+    ) {
+      nutritionBelowWarnings.push('chất xơ');
+    }
+
+    if (
+      nutritionRecommendation.energy > 0 &&
+      r.mealNutrition.total.energy > nutritionRecommendation.energy
+    ) {
+      nutritionExceededWarnings.push('calorie');
+    }
+
+    if (
+      nutritionRecommendation.protein > 0 &&
+      r.mealNutrition.total.protein > nutritionRecommendation.protein
+    ) {
+      nutritionExceededWarnings.push('protein');
+    }
+
+    if (
+      nutritionRecommendation.lipid > 0 &&
+      r.mealNutrition.total.lipid > nutritionRecommendation.lipid
+    ) {
+      nutritionExceededWarnings.push('lipid');
+    }
+
+    if (
+      nutritionRecommendation.glucid > 0 &&
+      r.mealNutrition.total.glucid > nutritionRecommendation.glucid
+    ) {
+      nutritionExceededWarnings.push('glucid');
+    }
+
+    if (
+      nutritionRecommendation.fiber > 0 &&
+      r.mealNutrition.total.fiber > nutritionRecommendation.fiber
+    ) {
+      nutritionExceededWarnings.push('chất xơ');
+    }
+
+    const overBudget = r.chi > r.moneyIn;
 
     const row=(l,i)=>{
 
@@ -244,13 +380,14 @@ window.ModDaily=(function(){
 
         <label>
           Tiền ăn/trẻ
-          <input
-            data-f=ratePerChild
-            type=number
-            value="${d.ratePerChild}"
-            ${dis}
-          >
+          <input data-f=ratePerChild type=number value="${d.ratePerChild}"${dis}>
         </label>
+
+        ${overBudget ? `
+          <div class="daily-budget-warning">
+            Sổ ăn hôm nay vượt mức tổng thu
+          </div>
+        ` : ''}
 
         <label>
           Gas+gia vị/trẻ
@@ -469,8 +606,20 @@ window.ModDaily=(function(){
 
       <!-- BẢNG DINH DƯỠNG -->
 
-      <h3>
-        HÀM LƯỢNG DINH DƯỠNG CÁC BỮA ĂN
+      <h3 class="nutrition-heading">
+        <span>HÀM LƯỢNG DINH DƯỠNG CÁC BỮA ĂN</span>
+
+        ${nutritionBelowWarnings.length ? `
+          <span class="daily-nutrition-warning">
+            Lượng ${nutritionBelowWarnings.join(', ')} hôm nay dưới mức khuyến cáo
+          </span>
+        ` : ''}
+
+        ${nutritionExceededWarnings.length ? `
+          <span class="daily-nutrition-warning">
+            Lượng ${nutritionExceededWarnings.join(', ')} hôm nay vượt mức khuyến cáo
+          </span>
+        ` : ''}
       </h3>
 
       <p>
