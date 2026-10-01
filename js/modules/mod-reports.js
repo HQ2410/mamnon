@@ -23,11 +23,308 @@ window.ModReports=(function(){
     ${stk.length?`<h4>Tồn kho cuối kỳ</h4><table>${th('Mặt hàng','ĐVT','Tồn')}${stk.map(i=>td(esc(i.name),esc(i.unit),num(S.stock[i.id]))).join('')}</table>`:''}`
    :'<p><i>Chưa có sổ ăn nào trong kỳ này.</i></p>'}`;
   el.S=S,el.R=[from,to]}
- function csv(){const S=el.S,[f,t]=el.R,q=x=>`"${String(x).replace(/"/g,'""')}"`,L=[['sep=;'],[q('Báo cáo '+dmy(f)+' - '+dmy(t))],['Ngày','Số cháu','Thu','Chi','Thừa/thiếu lũy kế'].map(q)];
-  S.rows.forEach(({d,r})=>L.push([dmy(d.date),r.total,Math.round(r.moneyIn),Math.round(r.chi),Math.round(r.balance)]));
-  L.push([],['Thực phẩm','ĐVT','SL nhập','SL chi','Tiền chi'].map(q));
-  Object.values(S.items).sort((a,b)=>b.money-a.money).forEach(o=>L.push([q(o.it.name),q(o.it.unit),o.qtyIn,o.qtyOut,Math.round(o.money)]));
-  const a=document.createElement('a');a.href=URL.createObjectURL(new Blob(['\ufeff'+L.map(r=>r.join(';')).join('\r\n')],{type:'text/csv'}));a.download=`bao-cao-${mode}-${f}.csv`;a.click()}
+ function csv(){
+  const S = el.S;
+  const [f, t] = el.R;
+
+  // Escape dữ liệu CSV:
+  // - luôn bọc text bằng "
+  // - " bên trong text -> ""
+  const csvText = value => {
+    if (value === null || value === undefined) return '""';
+    return '"' + String(value).replace(/"/g, '""') + '"';
+  };
+
+  // Giá trị số:
+  // Không dùng dấu phân cách hàng nghìn và không quote,
+  // để Excel nhận trực tiếp là Number.
+  const csvNum = value => {
+    if (value === null || value === undefined || value === '') return '';
+    const n = Number(value);
+    return Number.isFinite(n) ? String(Math.round(n)) : '';
+  };
+
+  // Số lượng thực phẩm có thể có số lẻ.
+  // Dùng "." làm decimal separator trong CSV.
+  // Excel sẽ tự chuyển theo thiết lập vùng khi import.
+  const csvQty = value => {
+    if (value === null || value === undefined || value === '') return '';
+
+    const n = Number(value);
+    if (!Number.isFinite(n)) return csvText(value);
+
+    // Không để dạng 1.00000000001
+    return String(Number(n.toFixed(6)));
+  };
+
+  // Mỗi dòng CSV
+  const rows = [];
+
+  // =========================================================
+  // TIÊU ĐỀ
+  // =========================================================
+  rows.push([
+    csvText(
+      'BÁO CÁO CHI ĂN ' +
+      (mode === 'week' ? 'TUẦN' : 'THÁNG')
+    )
+  ]);
+
+  rows.push([
+    csvText(MN_CONFIG.school.name)
+  ]);
+
+  rows.push([
+    csvText(MN_CONFIG.school.branch)
+  ]);
+
+  rows.push([
+    csvText(`Từ ${dmy(f)} đến ${dmy(t)}`)
+  ]);
+
+  rows.push([]);
+
+  // =========================================================
+  // KHÔNG CÓ SỔ ĂN
+  // =========================================================
+  if (!S.n) {
+    rows.push([
+      csvText('Chưa có sổ ăn nào trong kỳ này.')
+    ]);
+  } else {
+
+    // =======================================================
+    // TỔNG HỢP
+    // =======================================================
+    rows.push([csvText('TỔNG HỢP')]);
+
+    rows.push([
+      csvText('Chỉ tiêu'),
+      csvText('Giá trị')
+    ]);
+
+    rows.push([
+      csvText('Số ngày có sổ'),
+      csvNum(S.n)
+    ]);
+
+    rows.push([
+      csvText(
+        'Tổng lượt trẻ ăn (bình quân ' +
+        num(S.avgKids) +
+        ' trẻ/ngày)'
+      ),
+      csvNum(S.kidDays)
+    ]);
+
+    rows.push([
+      csvText('Tồn đầu kỳ'),
+      csvNum(S.open)
+    ]);
+
+    rows.push([
+      csvText('Tổng thu'),
+      csvNum(S.thu)
+    ]);
+
+    rows.push([
+      csvText('Tổng chi'),
+      csvNum(S.chi)
+    ]);
+
+    if (S.adjust) {
+      rows.push([
+        csvText('Điều chỉnh tay "tồn ngày trước"'),
+        csvNum(S.adjust)
+      ]);
+    }
+
+    rows.push([
+      csvText('Thừa / thiếu cuối kỳ'),
+      csvNum(S.close)
+    ]);
+
+    rows.push([
+      csvText('Chi bình quân / trẻ / ngày'),
+      csvNum(S.chiPerKid)
+    ]);
+
+    rows.push([]);
+
+    // =======================================================
+    // THEO NGÀY
+    // =======================================================
+    rows.push([
+      csvText('THEO NGÀY')
+    ]);
+
+    rows.push([
+      csvText('Ngày'),
+      csvText('Số cháu'),
+      csvText('Thu'),
+      csvText('Chi'),
+      csvText('Thừa/thiếu lũy kế')
+    ]);
+
+    S.rows.forEach(({d, r}) => {
+      rows.push([
+        csvText(dmy(d.date)),
+        csvNum(r.total),
+        csvNum(r.moneyIn),
+        csvNum(r.chi),
+        csvNum(r.balance)
+      ]);
+    });
+
+    // Dòng cộng
+    rows.push([
+      csvText('Cộng'),
+      csvNum(S.kidDays),
+      csvNum(S.thu),
+      csvNum(S.chi),
+      csvNum(S.close)
+    ]);
+
+    rows.push([]);
+
+    // =======================================================
+    // CHI THEO NHÓM
+    // =======================================================
+    rows.push([
+      csvText('CHI THEO NHÓM')
+    ]);
+
+    rows.push([
+      csvText('Nhóm'),
+      csvText('Tiền chi'),
+      csvText('Tỷ lệ')
+    ]);
+
+    const groups = [
+      ['Gas, gia vị', S.gas],
+      ...Object.keys(GROUPS).map(g => [
+        GROUPS[g],
+        S.grp[g]
+      ])
+    ];
+
+    groups.forEach(([name, value]) => {
+      rows.push([
+        csvText(name),
+        csvNum(value),
+        S.chi
+          ? csvText((value / S.chi * 100).toFixed(1) + '%')
+          : csvText('')
+      ]);
+    });
+
+    rows.push([]);
+
+    // =======================================================
+    // THEO THỰC PHẨM
+    // =======================================================
+    rows.push([
+      csvText('THEO THỰC PHẨM')
+    ]);
+
+    rows.push([
+      csvText('Thực phẩm'),
+      csvText('ĐVT'),
+      csvText('SL nhập'),
+      csvText('SL chi'),
+      csvText('Tiền chi')
+    ]);
+
+    Object.values(S.items)
+      .sort((a, b) => b.money - a.money)
+      .forEach(o => {
+        rows.push([
+          csvText(o.it.name),
+          csvText(o.it.unit),
+          csvQty(o.qtyIn),
+          csvQty(o.qtyOut),
+          csvNum(o.money)
+        ]);
+      });
+
+    rows.push([]);
+
+    // =======================================================
+    // TỒN KHO CUỐI KỲ
+    // =======================================================
+    const stk = DB.items.filter(
+      i => i.stock && S.stock[i.id] != null
+    );
+
+    if (stk.length) {
+      rows.push([
+        csvText('TỒN KHO CUỐI KỲ')
+      ]);
+
+      rows.push([
+        csvText('Mặt hàng'),
+        csvText('ĐVT'),
+        csvText('Tồn')
+      ]);
+
+      stk.forEach(i => {
+        rows.push([
+          csvText(i.name),
+          csvText(i.unit),
+          csvQty(S.stock[i.id])
+        ]);
+      });
+    }
+  }
+
+  // =========================================================
+  // GHÉP CSV
+  // =========================================================
+  //
+  // Dùng CRLF (\r\n) để tương thích tốt với Excel Windows.
+  //
+  const csvData = rows
+    .map(row => row.join(';'))
+    .join('\r\n');
+
+  // =========================================================
+  // UTF-8 BOM
+  // =========================================================
+  //
+  // BOM = EF BB BF
+  //
+  // Đây là phần quan trọng giúp Excel khi NHÁY ĐÚP file
+  // nhận biết file là UTF-8 và không lỗi tiếng Việt.
+  //
+  const BOM = '\uFEFF';
+
+  const finalData = BOM + csvData;
+
+  const blob = new Blob(
+    [finalData],
+    {
+      type: 'text/csv;charset=utf-8'
+    }
+  );
+
+  // =========================================================
+  // DOWNLOAD
+  // =========================================================
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+
+  a.href = url;
+  a.download =
+    `bao-cao-${mode}-${f}.csv`;
+
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+
+  setTimeout(() => {
+    URL.revokeObjectURL(url);
+  }, 1000);
+}
  return{mount(root){el=root;ref=today();render();
   el.onchange=e=>{if(!['mode','ref'].includes(e.target.id))return;if(!guard('report.view'))return;if(e.target.id==='mode')mode=e.target.value;else if(e.target.id==='ref'&&e.target.value)ref=e.target.value;else return;render()};
   el.onclick=e=>{const id=e.target.id;if(!['pv','nx','csv'].includes(id))return;if(!guard('report.view'))return;
