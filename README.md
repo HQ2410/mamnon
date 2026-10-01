@@ -17,8 +17,3 @@ js/app.js · js/lib/qrcode.js (MIT, tạo QR offline) · js/api/{kio-config,kio-
 - Tồn cuối = tồn đầu + SL nhập − SL chi (mặt hàng có theo dõi tồn: gạo, sữa); tự chuyển sang ngày sau.
 - Thừa/thiếu = thu + tồn ngày trước − tổng chi; tự chuyển thành "Tồn ngày trước" của ngày sau.
 - Thực phẩm đã phát sinh chứng từ thì không được xóa. Không khai báo tên bảng ngoài `kio-config.js`.
-
-## Quên mật khẩu bằng OTP (Google Authenticator)
-- Menu **Cài đặt mật khẩu**: đổi mật khẩu + thiết lập khóa OTP (TOTP RFC 6238: SHA-1, 6 số, 30 giây). Cần nhập mật khẩu hiện tại và mã OTP đầu tiên để bật.
-- Màn đăng nhập → **Quên mật khẩu**: nhập tên đăng nhập + mã OTP → đúng thì đặt mật khẩu mới. Mỗi mã chỉ dùng một lần; sai 5 lần bị khóa 60 giây.
-- Khóa OTP lưu trong bản ghi người dùng (`user.totp={secret,last}`), không cần thêm bảng. Quản trị có thể **Tắt OTP** của người dùng ở tab Người dùng (khi mất điện thoại).

@@ -35,6 +35,20 @@ const GROUPS={
   evening:'Bữa chính chiều'
 };
 
+// Gạo chỉ thuộc nhóm 'staple' (Gạo xuất từ kho); các bữa khác không được có gạo.
+const RICE_ID='gao';
+const itemsForGroup=g=>DB.items.filter(i=>g==='staple'?i.id===RICE_ID:i.id!==RICE_ID);
+// Xóa các dòng gạo nằm ngoài nhóm 'staple' ở mọi ngày. Trả về true nếu có thay đổi.
+function purgeRiceFromOtherMeals(){
+  let changed=false;
+  DB.days.forEach(d=>{
+    const n=d.lines.length;
+    d.lines=d.lines.filter(l=>!(l.itemId===RICE_ID&&l.group!=='staple'));
+    if(d.lines.length!==n)changed=true;
+  });
+  return changed;
+}
+
 const prevDay=date=>
   DB.days
     .filter(d=>d.date<date&&d.lines.length)

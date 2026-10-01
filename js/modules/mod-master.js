@@ -24,6 +24,11 @@ window.ModMaster=(function(){
         fiber:0
       };
 
+    const chk=(v,label)=>
+      `<input type="checkbox" class="ro-check" ${v?'checked':''}
+        tabindex="-1" aria-readonly="true" aria-label="${label}"
+        onclick="return false">`;
+
     const b=(a,id, editKey)=>
       ro
         ?''
@@ -40,7 +45,7 @@ window.ModMaster=(function(){
         <tr>
           <th>Lớp</th>
           <th>Cô chủ nhiệm</th>
-          <th>Nhà trẻ</th>
+          <th class="chk">Nhà trẻ</th>
           <th></th>
         </tr>
 
@@ -48,7 +53,7 @@ window.ModMaster=(function(){
           <tr>
             <td>${esc(c.name)}</td>
             <td>${esc(c.teachers)}</td>
-            <td>${c.nursery?'x':''}</td>
+            <td class="chk">${chk(c.nursery,'Nhà trẻ')}</td>
             <td>${b('dc',c.id, 'class')}</td>
           </tr>
         `).join('')}
@@ -66,7 +71,7 @@ window.ModMaster=(function(){
           <th>Tên</th>
           <th>ĐVT</th>
           <th>Đơn giá</th>
-          <th>Theo dõi tồn</th>
+          <th class="chk">Theo dõi tồn</th>
           <th></th>
         </tr>
 
@@ -76,7 +81,7 @@ window.ModMaster=(function(){
             <td>${esc(i.name)}</td>
             <td>${esc(i.unit)}</td>
             <td class=num>${vnd(i.price)}</td>
-            <td>${i.stock?'x':''}</td>
+            <td class="chk">${chk(i.stock,'Theo dõi tồn')}</td>
             <td>${b('di',i.id, 'item')}</td>
           </tr>
 

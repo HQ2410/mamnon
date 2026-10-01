@@ -96,8 +96,9 @@ window.ModDaily=(function(){
               ?' disabled'
               :'',
 
-          opt=
-            DB.items
+          // Nhóm Gạo chỉ có Gạo; các bữa khác không có Gạo
+          optFor=g=>
+            itemsForGroup(g)
               .map(i=>
                 `<option value="${esc(i.id)}">
                   ${esc(i.name)}
@@ -328,7 +329,7 @@ window.ModDaily=(function(){
               ?''
               :`
                 <select data-sel="${g}">
-                  ${opt}
+                  ${optFor(g)}
                 </select>
 
                 <button data-add="${g}">
@@ -422,6 +423,7 @@ window.ModDaily=(function(){
           <th>Số cháu</th>
           <th>Số tiền ăn/ngày</th>
           <th>Tổng tiền</th>
+          <th>Ghi chú</th>
         </tr>
 
         ${
@@ -456,6 +458,20 @@ window.ModDaily=(function(){
                     )}
                   </td>
 
+                  <td class="note-cell">
+                    <input
+                      data-n="${esc(k.c.id)}"
+                      type="text"
+                      maxlength="500"
+                      value="${esc((d.notes||{})[k.c.id]||'')}"
+                      ${dis}
+                    >
+                    <button
+                      type="button"
+                      data-vn="${esc(k.c.id)}"
+                    >Xem</button>
+                  </td>
+
                 </tr>
               `
             )
@@ -482,6 +498,8 @@ window.ModDaily=(function(){
             ${vnd(r.moneyIn)}
           </td>
 
+          <td></td>
+
         </tr>
 
 
@@ -504,6 +522,8 @@ window.ModDaily=(function(){
           <td class=num>
             ${vnd(r.available)}
           </td>
+
+          <td></td>
 
         </tr>
 
@@ -743,6 +763,79 @@ window.ModDaily=(function(){
   };
 
 
+  /*
+   * Modal xem toàn văn ghi chú của một lớp trong ngày đang chọn.
+   * Chỉ đọc, nên tài khoản chỉ xem cũng dùng được.
+   */
+  function showNote(classId){
+
+    const c=DB.classes.find(x=>x.id===classId);
+
+    if(!c){
+      return;
+    }
+
+    const note=(ensure().notes||{})[classId]||'';
+
+    const dmy=date.split('-').reverse().join('/');
+
+    const bg=document.createElement('div');
+    bg.className='modal-bg';
+
+    const box=document.createElement('div');
+    box.className='modal-box';
+    box.setAttribute('role','dialog');
+    box.setAttribute('aria-modal','true');
+
+    const h=document.createElement('h3');
+    h.textContent='Ghi chú lớp '+c.name+' ngày '+dmy;
+
+    const body=document.createElement('div');
+    body.className='modal-note';
+
+    if(note){
+      body.textContent=note;
+    }else{
+      body.textContent='(Chưa có ghi chú)';
+      body.classList.add('empty');
+    }
+
+    const close=document.createElement('button');
+    close.type='button';
+    close.textContent='Đóng';
+
+    box.append(h,body,close);
+    bg.append(box);
+    document.body.append(bg);
+
+    document.body.classList.add('modal-open');
+
+    const done=()=>{
+      document.removeEventListener('keydown',onKey);
+      document.body.classList.remove('modal-open');
+      bg.remove();
+    };
+
+    const onKey=e=>{
+      if(e.key==='Escape'){
+        done();
+      }
+    };
+
+    close.onclick=done;
+
+    bg.onclick=e=>{
+      if(e.target===bg){
+        done();
+      }
+    };
+
+    document.addEventListener('keydown',onKey);
+
+    close.focus();
+  }
+
+
   function bind(){
 
     el.onchange=e=>{
@@ -764,6 +857,7 @@ window.ModDaily=(function(){
       if(
         t.dataset.f===undefined&&
         t.dataset.a===undefined&&
+        t.dataset.n===undefined&&
         t.dataset.l===undefined
       ){
         return;
@@ -783,6 +877,22 @@ window.ModDaily=(function(){
       if(t.dataset.f){
 
         d[t.dataset.f]=+v;
+      }
+
+
+      // Ghi chú theo lớp (theo ngày)
+      else if(t.dataset.n!==undefined){
+
+        d.notes=d.notes||{};
+
+        const note=v.trim().slice(0,500);
+
+        if(note)d.notes[t.dataset.n]=note;
+        else delete d.notes[t.dataset.n];
+
+        persist(()=>MealAPI.saveDays());
+
+        return;
       }
 
 
@@ -817,6 +927,13 @@ window.ModDaily=(function(){
       const b=e.target;
 
 
+      // Xem ghi chú: chỉ đọc, không cần quyền sửa
+      if(b.dataset.vn!==undefined){
+
+        return showNote(b.dataset.vn);
+      }
+
+
       if(
         !b.dataset.add&&
         !b.dataset.del
@@ -848,7 +965,13 @@ window.ModDaily=(function(){
           );
 
 
-        if(it){
+        // Gạo chỉ được thêm ở nhóm Gạo; nhóm Gạo chỉ nhận Gạo
+        const allowed=
+          b.dataset.add==='staple'
+            ?id===RICE_ID
+            :id!==RICE_ID;
+
+        if(it&&allowed){
 
           d.lines.push({
 

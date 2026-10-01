@@ -12,7 +12,9 @@ window.MealAPI=(function(){
        ...(storedMin||{})
      };
    }
-   if(!DB.classes.length&&!DB.items.length&&!DB.days.length){Object.assign(DB,structuredClone(SEED));await this.saveAll()}} ,
+   if(!DB.classes.length&&!DB.items.length&&!DB.days.length){Object.assign(DB,structuredClone(SEED));await this.saveAll()}
+   // Gạo chỉ nằm ở nhóm "Gạo (xuất từ kho)": dọn các dòng gạo ở bữa khác (dữ liệu cũ)
+   if(purgeRiceFromOtherMeals()&&SystemAPI.can('daily.edit'))await this.saveDays()} ,
   saveClasses:()=>S.save(T.classes,DB.classes),
   saveItems:()=>S.save(T.items,DB.items),
   saveDays:()=>S.save(T.days,DB.days.filter(d=>d.lines.length).map(d=>({...d,id:d.date}))), // id = ngày (yyyy-mm-dd)
