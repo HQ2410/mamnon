@@ -24,10 +24,7 @@ window.ModDaily=(function(){
       gasRate:
         p?p.gasRate:2000,
 
-      attendance:
-        p
-          ?{...p.attendance}
-          :{},
+      attendance:{},
 
       lines:[]
     };
@@ -45,6 +42,39 @@ window.ModDaily=(function(){
         (+n||0)*100
       )/100
     );
+  }
+
+  function sanitizeDailyValue(value,{allowDecimalComma=false,defaultValue=0}={}){
+    return sanitizePositiveNumber(value,{allowDecimalComma,defaultValue});
+  }
+
+  function validateStockLine(d, index, key, rawValue){
+    const line=d.lines[index];
+
+    if(!line){
+      return true;
+    }
+
+    const item=DB.items.find(i=>i.id===line.itemId);
+
+    if(!item || !item.stock){
+      return true;
+    }
+
+    const next={
+      ...line,
+      [key]:sanitizeDailyValue(rawValue,{allowDecimalComma:key==='qtyIn'||key==='qtyOut',defaultValue:0})
+    };
+
+    const open=(calc(d).lines[index]||{open:0}).open;
+    const close=open + (+next.qtyIn||0) - (+next.qtyOut||0);
+
+    if(close < 0){
+      alert('SL chi vượt tồn kho. Hãy nhập SL nhập tương ứng hoặc giảm SL chi.');
+      return false;
+    }
+
+    return true;
   }
 
 
@@ -253,8 +283,10 @@ window.ModDaily=(function(){
           data-l="${i}"
           data-k="${k}"
           type="number"
+          min="0"
           step="any"
-          value="${l[k]}"
+          inputmode="decimal"
+          value="${sanitizeDailyValue(l[k],{allowDecimalComma:k==='qtyIn'||k==='qtyOut',defaultValue:0})}"
           ${dis}
         >`;
 
@@ -381,7 +413,7 @@ window.ModDaily=(function(){
 
         <label>
           Tiền ăn/trẻ
-          <input data-f=ratePerChild type=number value="${d.ratePerChild}"${dis}>
+          <input data-f=ratePerChild type=number min="0" value="${sanitizeDailyValue(d.ratePerChild,{defaultValue:0})}"${dis}>
         </label>
 
         ${overBudget ? `
@@ -395,7 +427,8 @@ window.ModDaily=(function(){
           <input
             data-f=gasRate
             type=number
-            value="${d.gasRate}"
+            min="0"
+            value="${sanitizeDailyValue(d.gasRate,{defaultValue:0})}"
             ${dis}
           >
         </label>
@@ -443,7 +476,8 @@ window.ModDaily=(function(){
                     <input
                       data-a="${esc(k.c.id)}"
                       type=number
-                      value="${k.n}"
+                      min="0"
+                      value="${sanitizeDailyValue(k.n,{defaultValue:0})}"
                       ${dis}
                     >
                   </td>
@@ -514,7 +548,8 @@ window.ModDaily=(function(){
             <input
               data-f=prevBalance
               type=number
-              value="${r.prevBal}"
+              min="0"
+              value="${sanitizeDailyValue(r.prevBal,{defaultValue:0})}"
               ${dis}
             >
           </td>
@@ -876,7 +911,7 @@ window.ModDaily=(function(){
       // Các field đầu phiếu
       if(t.dataset.f){
 
-        d[t.dataset.f]=+v;
+        d[t.dataset.f]=sanitizeDailyValue(v,{defaultValue:0});
       }
 
 
@@ -899,16 +934,24 @@ window.ModDaily=(function(){
       // Số trẻ
       else if(t.dataset.a){
 
-        d.attendance[t.dataset.a]=+v;
+        d.attendance[t.dataset.a]=sanitizeDailyValue(v,{defaultValue:0});
       }
 
 
       // Dòng thực phẩm
       else if(t.dataset.l){
 
+        const key=t.dataset.k;
+        const idx=+t.dataset.l;
+
+        if(!validateStockLine(d,idx,key,v)){
+          render();
+          return;
+        }
+
         d.lines[
-          t.dataset.l
-        ][t.dataset.k]=+v;
+          idx
+        ][key]=sanitizeDailyValue(v,{allowDecimalComma:key==='qtyIn'||key==='qtyOut',defaultValue:0});
       }
 
 

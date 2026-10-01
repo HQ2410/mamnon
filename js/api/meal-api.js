@@ -17,7 +17,16 @@ window.MealAPI=(function(){
    if(purgeRiceFromOtherMeals()&&SystemAPI.can('daily.edit'))await this.saveDays()} ,
   saveClasses:()=>S.save(T.classes,DB.classes),
   saveItems:()=>S.save(T.items,DB.items),
-  saveDays:()=>S.save(T.days,DB.days.filter(d=>d.lines.length).map(d=>({...d,id:d.date}))), // id = ngày (yyyy-mm-dd)
+  saveDays:()=>S.save(
+    T.days,
+    DB.days
+      .filter(d=>
+        (d.lines&&d.lines.length) ||
+        Object.keys(d.attendance||{}).length ||
+        Object.keys(d.notes||{}).length
+      )
+      .map(d=>({...d,id:d.date}))
+  ), // id = ngày (yyyy-mm-dd)
   saveNutritionRecommendation:()=>S.save(
     T.nutritionRecommendation,
     [{

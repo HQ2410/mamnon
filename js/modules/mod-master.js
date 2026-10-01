@@ -7,9 +7,86 @@ window.ModMaster=(function(){
       d.lines.some(l=>l.itemId===id)
     );
 
+  const isMetricWeightUnit = unit => {
+    const u=String(unit||'').trim().toLowerCase();
+    return ['kg','kilogram','kilograms','g','gram','grams'].includes(u);
+  };
+
+  const requiresNutritionWeight = unit => {
+    const u=String(unit||'').trim();
+    return !!u && !isMetricWeightUnit(u);
+  };
+
   const nutritionValue=(item,key)=>{
     return +(item?.nutrition?.[key]||0);
   };
+
+  function askText(title, defaultValue=''){
+    return new Promise(resolve=>{
+      const bg=document.createElement('div');
+      bg.className='modal-bg';
+
+      const box=document.createElement('div');
+      box.className='modal-box';
+      box.style.maxWidth='420px';
+
+      const h=document.createElement('h3');
+      h.textContent=title;
+
+      const input=document.createElement('input');
+      input.type='text';
+      input.value=String(defaultValue ?? '');
+      input.style.width='100%';
+      input.style.margin='12px 0';
+      input.style.boxSizing='border-box';
+
+      const actions=document.createElement('div');
+      actions.style.display='flex';
+      actions.style.justifyContent='flex-end';
+      actions.style.gap='8px';
+      actions.style.marginTop='8px';
+
+      const ok=document.createElement('button');
+      ok.type='button';
+      ok.textContent='OK';
+      ok.onclick=()=>{
+        bg.remove();
+        resolve(input.value);
+      };
+
+      const cancel=document.createElement('button');
+      cancel.type='button';
+      cancel.textContent='Hủy';
+      cancel.onclick=()=>{
+        bg.remove();
+        resolve(null);
+      };
+
+      bg.onclick=e=>{
+        if(e.target===bg){
+          bg.remove();
+          resolve(null);
+        }
+      };
+
+      actions.append(cancel,ok);
+      box.append(h,input,actions);
+      bg.append(box);
+      document.body.append(bg);
+      input.focus();
+      input.select();
+      input.addEventListener('keydown',e=>{
+        if(e.key==='Enter'){
+          e.preventDefault();
+          ok.click();
+        }
+        if(e.key==='Escape'){
+          e.preventDefault();
+          cancel.click();
+        }
+      });
+    });
+  }
 
   function render(){
 
@@ -45,6 +122,7 @@ window.ModMaster=(function(){
         <tr>
           <th>Lớp</th>
           <th>Cô chủ nhiệm</th>
+          <th>Số cháu</th>
           <th class="chk">Nhà trẻ</th>
           <th></th>
         </tr>
@@ -53,6 +131,7 @@ window.ModMaster=(function(){
           <tr>
             <td>${esc(c.name)}</td>
             <td>${esc(c.teachers)}</td>
+            <td class="num">${Math.max(0, +c.children || 0)}</td>
             <td class="chk">${chk(c.nursery,'Nhà trẻ')}</td>
             <td>${b('dc',c.id, 'class')}</td>
           </tr>
@@ -71,6 +150,7 @@ window.ModMaster=(function(){
           <th>Tên</th>
           <th>ĐVT</th>
           <th>Đơn giá</th>
+          <th>Khối lượng / đơn vị</th>
           <th class="chk">Theo dõi tồn</th>
           <th></th>
         </tr>
@@ -81,6 +161,13 @@ window.ModMaster=(function(){
             <td>${esc(i.name)}</td>
             <td>${esc(i.unit)}</td>
             <td class=num>${vnd(i.price)}</td>
+            <td class="num">
+              ${
+                requiresNutritionWeight(i.unit)
+                  ? `${Math.max(0, +i.nutritionWeight || 0)} g`
+                  : '<span>—</span>'
+              }
+            </td>
             <td class="chk">${chk(i.stock,'Theo dõi tồn')}</td>
             <td>${b('di',i.id, 'item')}</td>
           </tr>
@@ -362,7 +449,7 @@ window.ModMaster=(function(){
 
       render();
 
-      el.onclick=e=>{
+      el.onclick=async e=>{
 
         const b=e.target;
 
@@ -388,15 +475,25 @@ window.ModMaster=(function(){
         // Thêm lớp
         if(b.id==='ac'){
 
-          const n=prompt('Tên lớp');
+          const n=await askText('Tên lớp');
 
-          if(n){
+          if(n!==null&&n.trim()){
+
+            const teachers=
+              (await askText('Cô chủ nhiệm',''))||'';
+
+            const childrenInput=
+              await askText('Số cháu','0');
+
+            const children=
+              sanitizePositiveNumber(childrenInput,{defaultValue:0});
 
             DB.classes.push({
               id:uid('c'),
-              name:n,
-              teachers:prompt('Cô chủ nhiệm')||'',
-              nursery:confirm('Là nhà trẻ?')
+              name:n.trim(),
+              teachers:teachers.trim(),
+              nursery:confirm('Là nhà trẻ?'),
+              children
             });
 
             save();
@@ -408,15 +505,18 @@ window.ModMaster=(function(){
         // Thêm thực phẩm
         else if(b.id==='ai'){
 
-          const n=prompt('Tên thực phẩm');
+          const n=await askText('Tên thực phẩm');
 
-          if(n){
+          if(n!==null&&n.trim()){
 
             const unit=
-              prompt('ĐVT','Kg')||'Kg';
+              (await askText('ĐVT','Kg'))||'Kg';
+
+            const priceInput=
+              await askText('Đơn giá','0');
 
             const price=
-              +prompt('Đơn giá',0)||0;
+              sanitizePositiveNumber(priceInput,{defaultValue:0});
 
             const stock=
               confirm('Theo dõi tồn kho?');
@@ -429,26 +529,25 @@ window.ModMaster=(function(){
              */
             let nutritionWeight=0;
 
-            if(
-              unit.toLowerCase()==='hộp'||
-              unit.toLowerCase()==='chai'
-            ){
+            if(!isMetricWeightUnit(unit)){
+
+              const nutritionWeightInput=
+                await askText(
+                  'Khối lượng dinh dưỡng của 1 '+unit+' (gram).\nNhập 0 nếu chưa xác định.',
+                  '0'
+                );
 
               nutritionWeight=
-                +prompt(
-                  'Khối lượng dinh dưỡng của 1 '+unit+' (gram).\n'+
-                  'Nhập 0 nếu chưa xác định.',
-                  0
-                )||0;
+                sanitizePositiveNumber(nutritionWeightInput,{allowDecimalComma:true,defaultValue:0});
             }
 
             DB.items.push({
 
               id:uid('i'),
 
-              name:n,
+              name:n.trim(),
 
-              unit,
+              unit:unit.trim()||'Kg',
 
               price,
 
@@ -484,16 +583,23 @@ window.ModMaster=(function(){
           }
 
           const name=
-            prompt('Tên lớp',c.name);
+            await askText('Tên lớp',c.name);
 
           if(name===null){
             return;
           }
 
           const teachers=
-            prompt('Cô chủ nhiệm',c.teachers||'');
+            await askText('Cô chủ nhiệm',c.teachers||'');
 
           if(teachers===null){
+            return;
+          }
+
+          const childrenInput=
+            await askText('Số cháu',String(c.children||0));
+
+          if(childrenInput===null){
             return;
           }
 
@@ -502,6 +608,7 @@ window.ModMaster=(function(){
 
           c.name=name.trim();
           c.teachers=teachers.trim();
+          c.children=sanitizePositiveNumber(childrenInput,{defaultValue:0});
           c.nursery=nursery;
 
           save();
@@ -531,28 +638,28 @@ window.ModMaster=(function(){
           }
 
           const name=
-            prompt('Tên thực phẩm',item.name);
+            await askText('Tên thực phẩm',item.name);
 
           if(name===null){
             return;
           }
 
           const unit=
-            prompt('ĐVT',item.unit||'Kg');
+            await askText('ĐVT',item.unit||'Kg');
 
           if(unit===null){
             return;
           }
 
           const priceInput=
-            prompt('Đơn giá',item.price);
+            await askText('Đơn giá',String(item.price));
 
           if(priceInput===null){
             return;
           }
 
           const price=
-            +priceInput||0;
+            sanitizePositiveNumber(priceInput,{defaultValue:0});
 
           const stock=
             confirm('Theo dõi tồn kho?');
@@ -560,16 +667,13 @@ window.ModMaster=(function(){
           let nutritionWeight=
             item.nutritionWeight||0;
 
-          if(
-            unit.toLowerCase()==='hộp'||
-            unit.toLowerCase()==='chai'
-          ){
+          if(!isMetricWeightUnit(unit)){
 
             const weightInput=
-              prompt(
+              await askText(
                 'Khối lượng dinh dưỡng của 1 '+unit+
                 ' (gram).\nNhập 0 nếu chưa xác định.',
-                nutritionWeight
+                String(nutritionWeight)
               );
 
             if(weightInput===null){
@@ -577,7 +681,7 @@ window.ModMaster=(function(){
             }
 
             nutritionWeight=
-              +weightInput||0;
+              sanitizePositiveNumber(weightInput,{allowDecimalComma:true,defaultValue:0});
           }else{
             nutritionWeight=0;
           }
@@ -616,6 +720,29 @@ window.ModMaster=(function(){
       };
 
 
+      el.oninput=e=>{
+
+        const input=e.target;
+
+        if(
+          !(input.dataset && (
+            input.dataset.recommendationKey!==undefined ||
+            input.dataset.minRecommendationKey!==undefined ||
+            input.dataset.nutritionId!==undefined
+          )) ||
+          input.type!=='number'
+        ){
+          return;
+        }
+
+        const currentValue=input.value;
+        const cleaned=sanitizePositiveNumber(currentValue,{allowDecimalComma:true,defaultValue:0});
+
+        if(currentValue !== String(cleaned)){
+          input.value=String(cleaned);
+        }
+      };
+
       /*
        * Nhập/sửa hàm lượng dinh dưỡng.
        *
@@ -635,10 +762,7 @@ window.ModMaster=(function(){
 
           const key=input.dataset.recommendationKey;
 
-          DB.nutritionRecommendation[key]=Math.max(
-            0,
-            +input.value||0
-          );
+          DB.nutritionRecommendation[key]=sanitizePositiveNumber(input.value,{allowDecimalComma:true,defaultValue:0});
 
           MealAPI.saveNutritionRecommendation();
 
@@ -654,10 +778,7 @@ window.ModMaster=(function(){
 
           const key=input.dataset.minRecommendationKey;
 
-          DB.minNutritionRecommendation[key]=Math.max(
-            0,
-            +input.value||0
-          );
+          DB.minNutritionRecommendation[key]=sanitizePositiveNumber(input.value,{allowDecimalComma:true,defaultValue:0});
 
           MealAPI.saveNutritionRecommendation();
 
@@ -702,10 +823,7 @@ window.ModMaster=(function(){
           input.dataset.nutritionKey;
 
         item.nutrition[key]=
-          Math.max(
-            0,
-            +input.value||0
-          );
+          sanitizePositiveNumber(input.value,{allowDecimalComma:true,defaultValue:0});
 
         MealAPI.saveItems();
       };

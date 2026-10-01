@@ -28,6 +28,71 @@ const num=n=>
 const uid=p=>
   p+Date.now().toString(36)+Math.random().toString(36).slice(2,4);
 
+function sanitizePositiveNumber(value,{allowDecimalComma=false,defaultValue=0}={}){
+  if(value===null||value===undefined){
+    return defaultValue;
+  }
+
+  let raw=String(value).trim();
+
+  if(raw===''){
+    return defaultValue;
+  }
+
+  if(!allowDecimalComma&&raw.includes(',')){
+    return defaultValue;
+  }
+
+  if(raw.includes('-')||raw.includes('+')){
+    return defaultValue;
+  }
+
+  raw=raw.replace(/\s+/g,'');
+
+  if(allowDecimalComma){
+    raw=raw.replace(/,/g,'.');
+  }
+
+  raw=raw.replace(/[^\d.]/g,'');
+
+  if(raw===''){
+    return defaultValue;
+  }
+
+  const segments=raw.split('.');
+  if(segments.length>2){
+    raw=segments.shift()+'.'+segments.join('');
+  }
+
+  if(raw==='.'||raw.startsWith('.')){
+    raw='0'+raw;
+  }
+
+  const num=Number(raw);
+
+  if(!Number.isFinite(num)){
+    return defaultValue;
+  }
+
+  return Math.max(0,num);
+}
+
+function normalizePositiveNumberInput(input,{allowDecimalComma=false,defaultValue=0}={}){
+  if(!(input instanceof HTMLInputElement) && input && typeof input === 'object' && 'value' in input){
+    const cleaned=sanitizePositiveNumber(input.value,{allowDecimalComma,defaultValue});
+    input.value=Number.isFinite(cleaned)?String(cleaned):String(defaultValue);
+    return cleaned;
+  }
+
+  const cleaned=sanitizePositiveNumber(input,{allowDecimalComma,defaultValue});
+
+  if(typeof input==='string'){
+    return cleaned;
+  }
+
+  return cleaned;
+}
+
 const GROUPS={
   staple:'Gạo (xuất từ kho)',
   main:'Ăn chính (trưa)',
@@ -246,7 +311,9 @@ function calc(d){
 
   const kids=DB.classes.map(c=>({
     c,
-    n:+d.attendance[c.id]||0
+    n:Object.prototype.hasOwnProperty.call(d.attendance||{}, c.id)
+      ? (+d.attendance[c.id]||0)
+      : (+c.children||0)
   }));
 
   const total=kids.reduce(
